@@ -40,6 +40,8 @@ module_param_named(debug_mask, debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 #define WAKE_LOCK_AUTO_EXPIRE            (1U << 10)
 #define WAKE_LOCK_PREVENTING_SUSPEND     (1U << 11)
 
+struct wake_lock anti_suspend;
+EXPORT_SYMBOL(anti_suspend);
 static DEFINE_SPINLOCK(list_lock);
 static LIST_HEAD(inactive_locks);
 static struct list_head active_wake_locks[WAKE_LOCK_TYPE_COUNT];
@@ -544,6 +546,7 @@ static int __init wakelocks_init(void)
 	for (i = 0; i < ARRAY_SIZE(active_wake_locks); i++)
 		INIT_LIST_HEAD(&active_wake_locks[i]);
 
+	wake_lock_init(&anti_suspend, WAKE_LOCK_SUSPEND, "antisuspend");
 #ifdef CONFIG_WAKELOCK_STAT
 	wake_lock_init(&deleted_wake_locks, WAKE_LOCK_SUSPEND,
 			"deleted_wake_locks");

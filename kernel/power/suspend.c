@@ -16,8 +16,17 @@
 #include <linux/cpu.h>
 #include <linux/syscalls.h>
 
+#include <linux/wakelock.h>
 #include "power.h"
 
+#ifdef	CONFIG_FAKE_PM
+#include <asm/io.h>
+
+int if_in_suspend ;
+EXTERN_SYMBOL(if_in_suspend);
+#endif
+
+extern struct wake_lock anti_suspend;
 const char *const pm_states[PM_SUSPEND_MAX] = {
 #ifdef CONFIG_EARLYSUSPEND
 	[PM_SUSPEND_ON]		= "on",
@@ -244,6 +253,16 @@ static void suspend_finish(void)
 	pm_restore_console();
 }
 
+/********************Added by Infotm SHANGHAI***********************/
+#ifdef CONFIG_FAKE_PM
+struct completion     power_key;
+EXTERL_SYMBOL(power_key);
+extern int imap_timer_setup(int channel,unsigned long g_tcnt,unsigned long gtcmp);
+extern int imap_pwm_suspend(struct sys_device *pdev, pm_message_t pm);
+extern int imap_pwm_resume(struct sys_device *pdev);
+#endif
+/******************************************************************/
+
 /**
  *	enter_state - Do common work of entering low-power state.
  *	@state:		pm_state structure for state we're entering.
@@ -256,6 +275,65 @@ static void suspend_finish(void)
  */
 int enter_state(suspend_state_t state)
 {
+#ifdef CONFIG_FAKE_PM
+	unsigned int temp;
+
+	printk(KERN_INFO "PM: Syncing filesystems ... ");
+
+	init_completion(&power_key);
+
+	imap_pwm_suspend(NULL, PMSG_SUSPEND);
+
+	/*
+	temp = __raw_readl(rGPFCON);
+	temp &= ~(0x3<<16);
+	temp |= 0x1<<16;
+	__raw_writel(temp, rGPFCON);
+
+	temp = __raw_readl(rGPFDAT);
+	temp &= ~(0x1<<8);
+	__raw_writel(temp, rGPFDAT);
+	*/
+
+	temp = __raw_readl(rGPPCON);
+	temp &= ~(0x3<<4);
+	temp |= 0x1<<4;
+	__raw_writel(temp, rGPPCON);
+
+	temp = __raw_readl(rGPPDAT);
+	temp &= ~(0x1<<2);
+	__raw_writel(temp, rGPPDAT);
+
+	if_in_suspend = 1;
+
+	wait_for_completion(&power_key);
+
+	printk("PM: Finishing wakeup.\n");
+
+	if_in_suspend = 0;
+
+	imap_pwm_resume(NULL);
+
+/*	
+	temp = __raw_readl(rGPFCON);
+	temp &= ~(0x3<<16);
+	temp |= 0x2<<16;
+	__raw_writel(temp, rGPFCON);
+	*/
+
+	temp = __raw_readl(rGPPCON);
+	temp &= ~(0x3<<4);
+	temp |= 0x1<<4;
+	__raw_writel(temp, rGPPCON);
+	
+	temp = __raw_readl(rGPCDAT);
+	if (temp & 1<<7){
+	temp = __raw_readl(rGPPDAT);
+	temp |= (0x1<<2);
+	__raw_writel(temp, rGPPDAT);
+	}
+	return 0;
+#else
 	int error;
 
 	if (!valid_state(state))
@@ -284,7 +362,10 @@ int enter_state(suspend_state_t state)
 	suspend_finish();
  Unlock:
 	mutex_unlock(&pm_mutex);
+	wake_lock_timeout(&anti_suspend,HZ * 15);
+	//imapx200_gpio_key_emulate(2);
 	return error;
+#endif
 }
 
 /**
