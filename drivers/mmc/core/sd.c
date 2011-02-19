@@ -652,8 +652,26 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		(card->scr.bus_widths & SD_SCR_BUS_WIDTH_4)) {
 		err = mmc_app_set_bus_width(card, MMC_BUS_WIDTH_4);
 		if (err)
-			goto free_card;
+		{
+			err = 0;
+			printk(KERN_ERR "HiGH-SPEED MODE NOT AVILABLE FOR YOUR CARD!\n");
+			mmc_set_timing(card->host,MMC_TIMING_LEGACY);
+			err = mmc_app_set_bus_width(card, MMC_BUS_WIDTH_4);
+			if(err)
+			{
+				err = 0;
+				printk(KERN_ERR "CLOCK TOO HIGH SWITCH TO NORMAL CLOCK!\n");
+				max_dtr = card->csd.max_dtr;
+				mmc_set_clock(host, max_dtr);
+				err = mmc_app_set_bus_width(card, MMC_BUS_WIDTH_4);
+				if(err)
+				{
+					printk("I don't known why!!\n");
+					goto free_card;
+				}
 
+			}
+		}
 		mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
 	}
 

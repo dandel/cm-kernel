@@ -34,3 +34,8 @@ obj-$(CONFIG_BATTERY_INTEL_MID)	+= intel_mid_battery.o
 obj-$(CONFIG_CHARGER_ISP1704)	+= isp1704_charger.o
 obj-$(CONFIG_CHARGER_TWL4030)	+= twl4030_charger.o
 obj-$(CONFIG_CHARGER_PM8058)	+= pm8058-charger.o
+obj-$(CONFIG_IMAP_PRODUCTION_0702)  += batt.0702.o
+obj-$(CONFIG_IMAP_PRODUCTION_7901)  += batt.7901.o
+obj-$(CONFIG_IMAP_PRODUCTION_S01)  += batt.s01.o
+obj-$(CONFIG_IMAPX_BATTERY)  += imapx200_battery.o
+

@@ -17,6 +17,11 @@
 #define NO_IRQ	((unsigned int)(-1))
 #endif
 
+#ifndef NR_IRQS
+#define NR_IRQS 128
+#endif
+
+
 #ifndef __ASSEMBLY__
 struct irqaction;
 struct pt_regs;

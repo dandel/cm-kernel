@@ -63,6 +63,11 @@
 #define	IR_DISABLE
 #endif
 
+#if defined(CONFIG_ARCH_IMAP)
+#include "ohci-imap.c"
+#define PLATFORM_DRIVER		ohci_hcd_imapx200_driver
+#endif
+
 #ifdef CONFIG_ARCH_OMAP
 /* OMAP doesn't support IR (no SMM; not needed) */
 #define	IR_DISABLE

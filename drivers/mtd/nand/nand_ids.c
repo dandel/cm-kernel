@@ -63,6 +63,11 @@ struct nand_flash_dev nand_flash_ids[] = {
 	{"NAND 128MiB 1,8V 16-bit",	0x49, 512, 128, 0x4000, NAND_BUSWIDTH_16},
 	{"NAND 128MiB 3,3V 16-bit",	0x74, 512, 128, 0x4000, NAND_BUSWIDTH_16},
 	{"NAND 128MiB 3,3V 16-bit",	0x59, 512, 128, 0x4000, NAND_BUSWIDTH_16},
+#if defined(CONFIG_MTD_NAND_IMAPX200_NEW)
+//	{"NAND 2GiB 3,3V 8-bit",	0xd5, 8192, 2048, 0x100000, 0}, // K9GAG08U0E(436), TC58NVG4D2FTA00(448)(too many errors)
+//	{"NAND 2GiB 3,3V 8-bit",	0xd3, 2048, 2048, 0x40000, 0},	// HY27UG08AG5M(Bad)
+	{"NAND 1GiB 3,3V 8-bit",    0xdc, 2048, 1024, 0x20000, 0},	// HY27UG088G5M(Need delay)
+#endif
 
 	{"NAND 256MiB 3,3V 8-bit",	0x71, 512, 256, 0x4000, 0},
 

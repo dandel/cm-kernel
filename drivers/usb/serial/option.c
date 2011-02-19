@@ -398,6 +398,14 @@ static void option_instat_callback(struct urb *urb);
 /* ONDA MT825UP HSDPA 14.2 modem */
 #define ONDA_MT825UP         0x000b
 
+/* IMAP unknown products */
+#define IMAP_VENDOR_ID_0       0x1e89
+#define IMAP_VENDOR_ID_1       0x1c9e
+
+#define IMAP_PRODUCT_0         0x1e16
+#define IMAP_PRODUCT_1         0x1e20
+#define IMAP_PRODUCT_2         0x6000
+
 /* some devices interfaces need special handling due to a number of reasons */
 enum option_blacklist_reason {
 		OPTION_BLACKLIST_NONE = 0,
@@ -449,6 +457,9 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_GLX) },
 	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_GKE) },
 	{ USB_DEVICE(QUANTA_VENDOR_ID, QUANTA_PRODUCT_GLE) },
+        { USB_DEVICE(IMAP_VENDOR_ID_0, IMAP_PRODUCT_0) },
+        { USB_DEVICE(IMAP_VENDOR_ID_0, IMAP_PRODUCT_1) },
+        { USB_DEVICE(IMAP_VENDOR_ID_1, IMAP_PRODUCT_2) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E600, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E220, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E220BIS, 0xff, 0xff, 0xff) },

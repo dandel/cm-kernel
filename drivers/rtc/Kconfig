@@ -733,6 +733,14 @@ config RTC_DRV_S3C
 	  This driver can also be build as a module. If so, the module
 	  will be called rtc-s3c.
 
+config RTC_DRV_IMAP
+	tristate "iMAPx200 RTC driver"
+	depends on ARCH_IMAP
+	help
+	  RTC driver for iMAPx200, besides normal clock, it also provides
+	  1 to 64Hz periodical interrupt, alarm interrupt & wake-up
+	  features.
+
 config RTC_DRV_EP93XX
 	tristate "Cirrus Logic EP93XX"
 	depends on ARCH_EP93XX

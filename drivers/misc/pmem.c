@@ -19,7 +19,6 @@
 #include <linux/file.h>
 #include <linux/mm.h>
 #include <linux/list.h>
-#include <linux/mutex.h>
 #include <linux/debugfs.h>
 #include <linux/android_pmem.h>
 #include <linux/mempolicy.h>
@@ -27,6 +26,8 @@
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include <asm/cacheflush.h>
+
+#include "plat/mem_reserve.h"
 
 #define PMEM_MAX_DEVICES 10
 #define PMEM_MAX_ORDER 128
@@ -128,9 +129,9 @@ struct pmem_info {
 	 * this flag */
 	unsigned allocated;
 	/* for debugging, creates a list of pmem file structs, the
-	 * data_list_lock should be taken before pmem_data->sem if both are
+	 * data_list_sem should be taken before pmem_data->sem if both are
 	 * needed */
-	struct mutex data_list_lock;
+	struct semaphore data_list_sem;
 	struct list_head data_list;
 	/* pmem_sem protects the bitmap array
 	 * a write lock should be held when modifying entries in bitmap
@@ -274,7 +275,7 @@ static int pmem_release(struct inode *inode, struct file *file)
 	int id = get_id(file), ret = 0;
 
 
-	mutex_lock(&pmem[id].data_list_lock);
+	down(&pmem[id].data_list_sem);
 	/* if this file is a master, revoke all the memory in the connected
 	 *  files */
 	if (PMEM_FLAGS_MASTERMAP & data->flags) {
@@ -291,7 +292,7 @@ static int pmem_release(struct inode *inode, struct file *file)
 		}
 	}
 	list_del(&data->list);
-	mutex_unlock(&pmem[id].data_list_lock);
+	up(&pmem[id].data_list_sem);
 
 
 	down_write(&data->sem);
@@ -335,8 +336,8 @@ static int pmem_open(struct inode *inode, struct file *file)
 	int ret = 0;
 
 	DLOG("current %u file %p(%d)\n", current->pid, file, file_count(file));
-	/* setup file->private_data to indicate its unmapped */
-	/*  you can only open a pmem device one time */
+	/* setup file->private_data to indicate it's unmapped */
+	/* you can only open a pmem device once */
 	if (file->private_data != NULL)
 		return -1;
 	data = kmalloc(sizeof(struct pmem_data), GFP_KERNEL);
@@ -359,9 +360,9 @@ static int pmem_open(struct inode *inode, struct file *file)
 	file->private_data = data;
 	INIT_LIST_HEAD(&data->list);
 
-	mutex_lock(&pmem[id].data_list_lock);
+	down(&pmem[id].data_list_sem);
 	list_add(&data->list, &pmem[id].data_list);
-	mutex_unlock(&pmem[id].data_list_lock);
+	up(&pmem[id].data_list_sem);
 	return ret;
 }
 
@@ -439,7 +440,7 @@ static int pmem_allocate(int id, unsigned long len)
 	return best_fit;
 }
 
-static pgprot_t pmem_access_prot(struct file *file, pgprot_t vma_prot)
+static pgprot_t phys_mem_access_prot(struct file *file, pgprot_t vma_prot)
 {
 	int id = get_id(file);
 #ifdef pgprot_noncached
@@ -595,7 +596,8 @@ static int pmem_mmap(struct file *file, struct vm_area_struct *vma)
 	down_write(&data->sem);
 	/* check this file isn't already mmaped, for submaps check this file
 	 * has never been mmaped */
-	if ((data->flags & PMEM_FLAGS_SUBMAP) ||
+	if ((data->flags & PMEM_FLAGS_MASTERMAP) ||
+	    (data->flags & PMEM_FLAGS_SUBMAP) ||
 	    (data->flags & PMEM_FLAGS_UNSUBMAP)) {
 #if PMEM_DEBUG
 		printk(KERN_ERR "pmem: you can only mmap a pmem file once, "
@@ -629,7 +631,7 @@ static int pmem_mmap(struct file *file, struct vm_area_struct *vma)
 	}
 
 	vma->vm_pgoff = pmem_start_addr(id, data) >> PAGE_SHIFT;
-	vma->vm_page_prot = pmem_access_prot(file, vma->vm_page_prot);
+	vma->vm_page_prot = phys_mem_access_prot(file, vma->vm_page_prot);
 
 	if (data->flags & PMEM_FLAGS_CONNECTED) {
 		struct pmem_region_node *region_node;
@@ -1188,7 +1190,7 @@ static ssize_t debug_read(struct file *file, char __user *buf, size_t count,
 	n = scnprintf(buffer, debug_bufmax,
 		      "pid #: mapped regions (offset, len) (offset,len)...\n");
 
-	mutex_lock(&pmem[id].data_list_lock);
+	down(&pmem[id].data_list_sem);
 	list_for_each(elt, &pmem[id].data_list) {
 		data = list_entry(elt, struct pmem_data, list);
 		down_read(&data->sem);
@@ -1205,7 +1207,7 @@ static ssize_t debug_read(struct file *file, char __user *buf, size_t count,
 		n += scnprintf(buffer + n, debug_bufmax - n, "\n");
 		up_read(&data->sem);
 	}
-	mutex_unlock(&pmem[id].data_list_lock);
+	up(&pmem[id].data_list_sem);
 
 	n++;
 	buffer[n] = 0;
@@ -1237,17 +1239,23 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 	pmem[id].no_allocator = pdata->no_allocator;
 	pmem[id].cached = pdata->cached;
 	pmem[id].buffered = pdata->buffered;
-	pmem[id].base = pdata->start;
-	pmem[id].size = pdata->size;
+//	pmem[id].base = pdata->start;
+//	pmem[id].size = pdata->size;
+	if(id)
+		pmem[id].base = imap_get_reservemem_paddr(RESERVEMEM_DEV_PMEM) + imap_get_reservemem_size(RESERVEMEM_DEV_PMEM) / 2;
+	else
+		pmem[id].base = imap_get_reservemem_paddr(RESERVEMEM_DEV_PMEM);
+	pmem[id].size = imap_get_reservemem_size(RESERVEMEM_DEV_PMEM) / 2;
 	pmem[id].ioctl = ioctl;
 	pmem[id].release = release;
 	init_rwsem(&pmem[id].bitmap_sem);
-	mutex_init(&pmem[id].data_list_lock);
+	init_MUTEX(&pmem[id].data_list_sem);
 	INIT_LIST_HEAD(&pmem[id].data_list);
 	pmem[id].dev.name = pdata->name;
 	pmem[id].dev.minor = id;
 	pmem[id].dev.fops = &pmem_fops;
-	printk(KERN_INFO "%s: %d init\n", pdata->name, pdata->cached);
+//	printk(KERN_INFO "%s: %d init\n", pdata->name, pdata->cached);
+	printk(KERN_INFO "%s: %d init:0x%x\n", pdata->name, pdata->cached, pmem[id].base);
 
 	err = misc_register(&pmem[id].dev);
 	if (err) {

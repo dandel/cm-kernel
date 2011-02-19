@@ -387,6 +387,13 @@ config SPI_NUC900
 	help
 	  SPI driver for Nuvoton NUC900 series ARM SoCs
 
+config SPI_IMAPX200
+	tristate "Imapx200 series SPI"
+	depends on ARCH_IMAP
+	help
+	  SPI driver for Imapx200 series ARM SoCs
+
+
 #
 # Add new SPI master controllers in alphabetical order above this line
 #

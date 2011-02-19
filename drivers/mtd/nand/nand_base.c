@@ -78,7 +78,7 @@ static struct nand_ecclayout nand_oob_64 = {
 		   56, 57, 58, 59, 60, 61, 62, 63},
 	.oobfree = {
 		{.offset = 2,
-		 .length = 38} }
+		 .length = 25} }
 };
 
 static struct nand_ecclayout nand_oob_128 = {
@@ -92,7 +92,21 @@ static struct nand_ecclayout nand_oob_128 = {
 		   120, 121, 122, 123, 124, 125, 126, 127},
 	.oobfree = {
 		{.offset = 2,
-		 .length = 78} }
+		 .length = 32} }
+};
+
+static struct nand_ecclayout nand_oob_436 = {
+	.eccbytes = 48,
+	.eccpos = {
+		    80,  81,  82,  83,  84,  85,  86,  87,
+		    88,  89,  90,  91,  92,  93,  94,  95,
+		    96,  97,  98,  99, 100, 101, 102, 103,
+		   104, 105, 106, 107, 108, 109, 110, 111,
+		   112, 113, 114, 115, 116, 117, 118, 119,
+		   120, 121, 122, 123, 124, 125, 126, 127},
+	.oobfree = {
+		{.offset = 2,
+		 .length = 32}}
 };
 
 static int nand_get_device(struct nand_chip *chip, struct mtd_info *mtd,
@@ -3041,7 +3055,7 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 		 */
 		mtd->erasesize = type->erasesize;
 		mtd->writesize = type->pagesize;
-		mtd->oobsize = mtd->writesize / 32;
+		mtd->oobsize = ((mtd->writesize ==  2048)?64:436);
 		busw = type->options & NAND_BUSWIDTH_16;
 
 		/*
@@ -3257,6 +3271,44 @@ static int nand_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
 	return ret;
 }
 
+static void nand_panic_wait(struct mtd_info *mtd)
+{
+	struct nand_chip *chip = mtd->priv;
+	int i;
+
+	if (chip->state != FL_READY)
+		for (i = 0; i < 40; i++) {
+			if (chip->dev_ready(mtd))
+				break;
+			mdelay(10);
+		}
+	chip->state = FL_READY;
+}
+
+static int nand_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
+			    size_t *retlen, const u_char *buf)
+{
+	struct nand_chip *chip = mtd->priv;
+	int ret;
+
+	/* Do not allow reads past end of device */
+	if ((to + len) > mtd->size)
+		return -EINVAL;
+	if (!len)
+		return 0;
+
+	nand_panic_wait(mtd);
+
+	chip->ops.len = len;
+	chip->ops.datbuf = (uint8_t *)buf;
+	chip->ops.oobbuf = NULL;
+
+	ret = nand_do_write_ops(mtd, to, &chip->ops);
+
+	*retlen = chip->ops.retlen;
+	return ret;
+}
+
 
 /**
  * nand_scan_tail - [NAND Interface] Scan for the NAND device
@@ -3295,6 +3347,9 @@ int nand_scan_tail(struct mtd_info *mtd)
 			break;
 		case 128:
 			chip->ecc.layout = &nand_oob_128;
+			break;
+		case 436:
+			chip->ecc.layout = &nand_oob_436;
 			break;
 		default:
 			printk(KERN_WARNING "No oob scheme defined for "

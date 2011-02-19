@@ -205,7 +205,7 @@ config MMU
 #
 choice
 	prompt "ARM system type"
-	default ARCH_VERSATILE
+	default ARCH_IMAP
 
 config ARCH_AAEC2000
 	bool "Agilent AAEC-2000 based"
@@ -845,6 +845,18 @@ config PLAT_SPEAR
 	help
 	  Support for ST's SPEAr platform (SPEAr3xx, SPEAr6xx and SPEAr13xx).
 
+config ARCH_IMAP
+        bool "Infotm IMAPX200"
+        select GENERIC_GPIO
+        select HAVE_CLK
+	select ARM_AMBA
+        help
+          Say Y here for systems based on one of the Infotm IMAP processers
+          such as imapx200 which is a powerful multimedia ARM processer.
+          Detailed info at <http://www.infotmic.com.cn>.
+
+
+
 endchoice
 
 #
@@ -855,8 +867,6 @@ endchoice
 source "arch/arm/mach-aaec2000/Kconfig"
 
 source "arch/arm/mach-at91/Kconfig"
-
-source "arch/arm/mach-bcmring/Kconfig"
 
 source "arch/arm/mach-clps711x/Kconfig"
 
@@ -873,6 +883,8 @@ source "arch/arm/mach-footbridge/Kconfig"
 source "arch/arm/mach-gemini/Kconfig"
 
 source "arch/arm/mach-h720x/Kconfig"
+
+source "arch/arm/plat-imap/Kconfig"
 
 source "arch/arm/mach-integrator/Kconfig"
 
@@ -891,6 +903,10 @@ source "arch/arm/mach-ixp23xx/Kconfig"
 source "arch/arm/mach-kirkwood/Kconfig"
 
 source "arch/arm/mach-ks8695/Kconfig"
+
+if ARCH_IMAP
+source "arch/arm/mach-imapx200/Kconfig"
+endif
 
 source "arch/arm/mach-lh7a40x/Kconfig"
 
@@ -1305,7 +1321,7 @@ source kernel/Kconfig.preempt
 config HZ
 	int
 	default 200 if ARCH_EBSA110 || ARCH_S3C2410 || ARCH_S5P64X0 || \
-		ARCH_S5P6442 || ARCH_S5PV210 || ARCH_S5PV310
+		ARCH_S5P6442 || ARCH_S5PV210 || ARCH_S5PV310 || ARCH_IMAP
 	default OMAP_32K_TIMER_HZ if ARCH_OMAP && OMAP_32K_TIMER
 	default AT91_TIMER_HZ if ARCH_AT91
 	default SHMOBILE_TIMER_HZ if ARCH_SHMOBILE

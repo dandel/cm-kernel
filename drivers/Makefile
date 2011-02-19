@@ -6,6 +6,7 @@
 #
 
 obj-y				+= gpio/
+obj-$(CONFIG_SENSOR)		+= sensors/
 obj-$(CONFIG_PCI)		+= pci/
 obj-$(CONFIG_PARISC)		+= parisc/
 obj-$(CONFIG_RAPIDIO)		+= rapidio/
@@ -116,3 +117,5 @@ obj-$(CONFIG_VLYNQ)		+= vlynq/
 obj-$(CONFIG_STAGING)		+= staging/
 obj-y				+= platform/
 obj-y				+= ieee802154/
+obj-$(CONFIG_IMAP_MEMALLOC)     += memalloc/
+obj-$(CONFIG_ASYSOPS)		+= asysops/

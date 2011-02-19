@@ -197,4 +197,21 @@ config CHARGER_PM8058
 	help
 	  Say Y to include support for the pm8058 charge controller
 
+config ANDROID_FAKE_BATTERY
+	tristate "ANDROID FAKE BATTERY"
+	help
+	 Say Y to include support for android fake battery.
+
+config IMAPX_BATTERY
+	tristate "iMAPx200 battery driver"
+	help
+	 Say Y to include support for iMAPx200 battery.
+
+config IMAPX_ADC_PRODUCT 
+	bool "Using Product gpio to config ADC"
+	depends on IMAPX_BATTERY
+	default y
+	help
+	  Say Y here if you are using product board.
+
 endif # POWER_SUPPLY

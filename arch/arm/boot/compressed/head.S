@@ -662,6 +662,7 @@ proc_types:
 		W(b)	__arm7_mmu_cache_off
 		mov	pc, lr
  THUMB(		nop				)
+#endif
 
 		.word	0x41807200		@ ARM720T (writethrough)
 		.word	0xffffff00
