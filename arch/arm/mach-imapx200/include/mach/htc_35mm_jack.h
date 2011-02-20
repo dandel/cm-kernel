@@ -1,0 +1,1 @@
+../../../mach-msm/include/mach/htc_35mm_jack.h

@@ -1,0 +1,1 @@
+../../../mach-msm/include/mach/camera.h
